@@ -142,7 +142,8 @@ export function PostEditor({ initialData, onSave }: PostEditorProps) {
               disabled={
                 processState !== "IDLE" ||
                 saveStatus === "SAVING" ||
-                !isPostDirty
+                !isPostDirty ||
+                (post.status === "published" && !post.publishedAt)
               }
               variant="ghost"
               className={`
@@ -175,8 +176,9 @@ export function PostEditor({ initialData, onSave }: PostEditorProps) {
         id="post-editor-scroll-container"
         className="flex-1 overflow-y-auto custom-scrollbar relative scroll-smooth animate-in fade-in slide-in-from-bottom-4 duration-1000 fill-mode-both delay-100"
       >
-        <div className="w-full max-w-7xl mx-auto py-20 px-6 md:px-12 grid grid-cols-1 xl:grid-cols-[1fr_240px] gap-12 items-start">
-          <div className="min-w-0 w-full max-w-4xl mx-auto">
+        <div className="w-full mx-auto py-20 px-6 md:px-12 grid grid-cols-1 xl:grid-cols-[1fr_240px] 2xl:grid-cols-[1fr_56rem_1fr] gap-12 items-start">
+          <div className="hidden 2xl:block" />
+          <div className="min-w-0 w-full max-w-4xl mx-auto 2xl:mx-0">
             {/* Title Area */}
             <div className="mb-12">
               <TextareaAutosize
@@ -367,7 +369,7 @@ export function PostEditor({ initialData, onSave }: PostEditorProps) {
           </div>
 
           {/* Sidebar */}
-          <aside className="hidden xl:block sticky top-20 h-full max-h-[calc(100vh-10rem)]">
+          <aside className="hidden xl:block sticky top-20 h-full max-h-[calc(100vh-10rem)] w-60">
             {editorInstance && (
               <EditorTableOfContents editor={editorInstance} />
             )}
