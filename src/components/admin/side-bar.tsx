@@ -12,11 +12,19 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { FileRoutesByTo } from "@/routeTree.gen";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import ConfirmationModal from "@/components/ui/confirmation-modal";
 import { authClient } from "@/lib/auth/auth.client";
 import { AUTH_KEYS } from "@/features/auth/queries";
 import { cn } from "@/lib/utils";
+
+interface NavItem {
+  path: keyof FileRoutesByTo;
+  icon: React.ElementType;
+  label: string;
+  exact: boolean;
+}
 
 export function SideBar({
   isMobileSidebarOpen,
@@ -58,36 +66,36 @@ export function SideBar({
 
   const navItems = [
     {
-      path: "/admin" as const,
+      path: "/admin",
       icon: LayoutDashboard,
       label: "概览",
       exact: true,
     },
     {
-      path: "/admin/posts" as const,
+      path: "/admin/posts",
       icon: FileText,
       label: "文章管理",
       exact: false,
     },
     {
-      path: "/admin/tags" as const,
+      path: "/admin/tags",
       icon: Tag,
       label: "标签管理",
       exact: false,
     },
     {
-      path: "/admin/media" as const,
+      path: "/admin/media",
       icon: ImageIcon,
       label: "媒体库",
       exact: false,
     },
     {
-      path: "/admin/comments" as const,
+      path: "/admin/comments",
       icon: MessageSquare,
       label: "评论管理",
       exact: false,
     },
-  ];
+  ] satisfies Array<NavItem>;
 
   return (
     <>
