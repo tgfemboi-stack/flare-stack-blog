@@ -117,7 +117,9 @@ Use JSON format for logs to enable search/filtering in Cloudflare Workers Observ
 ```typescript
 // ✅ Good
 console.log(JSON.stringify({ message: "cache hit", key }));
-console.error(JSON.stringify({ message: "request failed", error: String(error) }));
+console.error(
+  JSON.stringify({ message: "request failed", error: String(error) }),
+);
 
 // 🔴 Bad
 console.log(`[Cache] HIT: ${key}`);
@@ -129,6 +131,7 @@ Use structured logging for request entry/exit, errors, and important business ev
 ## Additional Resources
 
 Detailed development guides live in `.agent/skills/`:
+
 - `backend-development/` — Server Functions, schemas, middlewares, workflows
 - `frontend-development/` — TanStack Query patterns, route loaders, components
 - `caching-strategies/` — KV caching, CDN headers, invalidation patterns
