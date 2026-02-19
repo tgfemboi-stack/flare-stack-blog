@@ -2,15 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 
-const THEMES_DIR = path.join(
-  process.cwd(),
-  "src/features/theme/themes",
-);
+const THEMES_DIR = path.join(process.cwd(), "src/features/theme/themes");
 
 const THEME_NAME_REGEX = /^[a-z0-9-]+$/;
 
 function prompt(question: string): Promise<string> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
@@ -80,9 +80,17 @@ export function UserLayout(_props: UserLayoutProps) {
     { dir: "home", page: "HomePage", props: "HomePageProps" },
     { dir: "posts", page: "PostsPage", props: "PostsPageProps" },
     { dir: "post", page: "PostPage", props: "PostPageProps" },
-    { dir: "friend-links", page: "FriendLinksPage", props: "FriendLinksPageProps" },
+    {
+      dir: "friend-links",
+      page: "FriendLinksPage",
+      props: "FriendLinksPageProps",
+    },
     { dir: "search", page: "SearchPage", props: "SearchPageProps" },
-    { dir: "submit-friend-link", page: "SubmitFriendLinkPage", props: "SubmitFriendLinkPageProps" },
+    {
+      dir: "submit-friend-link",
+      page: "SubmitFriendLinkPage",
+      props: "SubmitFriendLinkPageProps",
+    },
   ] as const;
 
   for (const { dir, page, props } of pageWithSkeleton) {
@@ -115,9 +123,21 @@ export { ${page}Skeleton } from "./skeleton";
   const authPages = [
     { dir: "login", page: "LoginPage", props: "LoginPageProps" },
     { dir: "register", page: "RegisterPage", props: "RegisterPageProps" },
-    { dir: "forgot-password", page: "ForgotPasswordPage", props: "ForgotPasswordPageProps" },
-    { dir: "reset-password", page: "ResetPasswordPage", props: "ResetPasswordPageProps" },
-    { dir: "verify-email", page: "VerifyEmailPage", props: "VerifyEmailPageProps" },
+    {
+      dir: "forgot-password",
+      page: "ForgotPasswordPage",
+      props: "ForgotPasswordPageProps",
+    },
+    {
+      dir: "reset-password",
+      page: "ResetPasswordPage",
+      props: "ResetPasswordPageProps",
+    },
+    {
+      dir: "verify-email",
+      page: "VerifyEmailPage",
+      props: "VerifyEmailPageProps",
+    },
   ] as const;
 
   for (const { dir, page, props } of authPages) {
@@ -215,14 +235,16 @@ export default {
 
   console.log(`\n✅ 主题 "${name}" 已创建于 ${themeDir}`);
   console.log("\n后续步骤：");
-  console.log("  1. 在 vite.config.ts 的 z.enum([\"default\"]) 中加入新主题名");
+  console.log('  1. 在 vite.config.ts 的 z.enum(["default"]) 中加入新主题名');
   console.log(`  2. 在 .env 中设置 THEME=${name} 并启动开发`);
 }
 
 async function main() {
   console.log("创建新主题\n");
 
-  const input = await prompt("请输入主题名称（仅允许小写字母、数字、连字符，如 my-theme）: ");
+  const input = await prompt(
+    "请输入主题名称（仅允许小写字母、数字、连字符，如 my-theme）: ",
+  );
 
   if (!input) {
     console.error("\n错误：主题名称不能为空。");

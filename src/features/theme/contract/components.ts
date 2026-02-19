@@ -17,6 +17,7 @@ import type {
   PublicLayoutProps,
   UserLayoutProps,
 } from "./layouts";
+import type { ThemeConfig } from "./config";
 
 /**
  * 主题契约 — 组件接口
@@ -25,6 +26,8 @@ import type {
  * TypeScript 在编译时验证主题实现了所有必须的组件。
  */
 export interface ThemeComponents {
+  /** 主题静态配置（数据获取参数等） */
+  config: ThemeConfig;
   /** 公共布局（Navbar + MobileMenu + Footer 的组合） */
   PublicLayout: React.ComponentType<PublicLayoutProps>;
   /** 主页渲染组件 */
