@@ -11,17 +11,10 @@ export default function TableOfContents({
   const [activeIndices, setActiveIndices] = useState<Array<number>>([]);
   const [isReady, setIsReady] = useState(false);
 
-  // Reset active indices and suppress visibility when headers change (e.g., during navigation)
-  useEffect(() => {
-    setActiveIndices([]);
-    setIsReady(false);
-    const timer = setTimeout(() => setIsReady(true), 600);
-    return () => clearTimeout(timer);
-  }, [headers]);
-
   const [isVisible, setIsVisible] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const tocRootRef = useRef<HTMLDivElement>(null);
+  const linksContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   // For the active indicator backdrop
@@ -68,8 +61,6 @@ export default function TableOfContents({
   }, []);
 
   // Section-based active heading detection (matches original Fuwari logic)
-  // For each heading, its "section" extends from the heading to the next heading.
-  // Any section even partially visible in the viewport is marked active.
   const computeActiveHeadings = useCallback(() => {
     if (headers.length === 0) return;
 
@@ -79,9 +70,9 @@ export default function TableOfContents({
       const heading = document.getElementById(headers[i].id);
       if (!heading) continue;
 
-      const sectionTop = heading.getBoundingClientRect().top;
+      const rect = heading.getBoundingClientRect();
+      const sectionTop = rect.top;
 
-      // Section bottom = next heading's top, or end of document for last heading
       let sectionBottom: number;
       if (i < headers.length - 1) {
         const nextHeading = document.getElementById(headers[i + 1].id);
@@ -89,22 +80,21 @@ export default function TableOfContents({
           ? nextHeading.getBoundingClientRect().top
           : window.innerHeight;
       } else {
-        // Last heading: section extends to end of content
-        sectionBottom =
-          document.documentElement.scrollHeight -
-          window.scrollY -
-          window.scrollY +
-          window.innerHeight;
-        // Simpler: just use a value that's always below viewport if content extends
-        const contentEnd =
-          document.documentElement.scrollHeight - window.scrollY;
-        sectionBottom = contentEnd;
+        // Last heading: section extends to end of article
+        const content = heading.closest(".fuwari-custom-md");
+        if (content) {
+          sectionBottom = content.getBoundingClientRect().bottom;
+        } else {
+          sectionBottom =
+            document.documentElement.scrollHeight - window.scrollY;
+        }
       }
 
-      // Check if any part of this section is visible in viewport (matching original fallback logic)
+      // Check if any part of this section is visible in viewport
+      // Add a small buffer (px) to match original's sensitivity
       const isInViewport =
-        (sectionTop >= 0 && sectionTop < window.innerHeight) ||
-        (sectionBottom > 0 && sectionBottom <= window.innerHeight) ||
+        (sectionTop >= -1 && sectionTop < window.innerHeight) ||
+        (sectionBottom > 1 && sectionBottom <= window.innerHeight) ||
         (sectionTop < 0 && sectionBottom > window.innerHeight);
 
       if (isInViewport) {
@@ -114,48 +104,62 @@ export default function TableOfContents({
       }
     }
 
-    // Find last contiguous block of active headings (matching original toggleActiveHeading logic)
+    // Find last contiguous block of active headings
     const newActiveIndices: Array<number> = [];
     let i = active.length - 1;
-    let min = active.length - 1;
-    let max = -1;
+    let minIdx = active.length - 1;
+    let maxIdx = -1;
 
     // Skip non-active from end
     while (i >= 0 && !active[i]) i--;
     // Collect last contiguous block
     while (i >= 0 && active[i]) {
-      min = Math.min(min, i);
-      max = Math.max(max, i);
+      minIdx = Math.min(minIdx, i);
+      maxIdx = Math.max(maxIdx, i);
       i--;
     }
 
-    if (min <= max) {
-      for (let j = min; j <= max; j++) {
+    if (minIdx <= maxIdx) {
+      for (let j = minIdx; j <= maxIdx; j++) {
         newActiveIndices.push(j);
       }
     }
 
-    setActiveIndices(newActiveIndices);
+    setActiveIndices((prev) => {
+      if (JSON.stringify(prev) === JSON.stringify(newActiveIndices))
+        return prev;
+      return newActiveIndices;
+    });
   }, [headers]);
 
+  // Initial and reactive computation
   useEffect(() => {
-    if (headers.length === 0) return;
+    computeActiveHeadings();
 
-    window.addEventListener("scroll", computeActiveHeadings, {
-      passive: true,
-    });
-    computeActiveHeadings(); // Initial check
+    // Reset active indices and suppress visibility briefly when headers change
+    setActiveIndices([]);
+    setIsReady(false);
+    const timer = setTimeout(() => {
+      setIsReady(true);
+      computeActiveHeadings();
+    }, 600);
 
-    return () => window.removeEventListener("scroll", computeActiveHeadings);
+    window.addEventListener("scroll", computeActiveHeadings, { passive: true });
+    window.addEventListener("resize", computeActiveHeadings);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", computeActiveHeadings);
+      window.removeEventListener("resize", computeActiveHeadings);
+    };
   }, [headers, computeActiveHeadings]);
 
   // Update indicator style based on the range of active indices
   useEffect(() => {
-    if (activeIndices.length > 0 && tocRootRef.current) {
+    if (activeIndices.length > 0 && linksContainerRef.current) {
       const firstIdx = activeIndices[0];
       const lastIdx = activeIndices[activeIndices.length - 1];
 
-      // Defensive check: ensure indices are within bounds of current headers
       if (!headers[firstIdx] || !headers[lastIdx]) {
         setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
         return;
@@ -164,48 +168,34 @@ export default function TableOfContents({
       const firstId = headers[firstIdx].id;
       const lastId = headers[lastIdx].id;
 
-      const firstLink = tocRootRef.current.querySelector<HTMLElement>(
+      const firstLink = linksContainerRef.current.querySelector<HTMLElement>(
         `a[href="#${firstId}"]`,
       );
-      const lastLink = tocRootRef.current.querySelector<HTMLElement>(
+      const lastLink = linksContainerRef.current.querySelector<HTMLElement>(
         `a[href="#${lastId}"]`,
       );
 
       if (firstLink && lastLink) {
-        const rootRect = tocRootRef.current.getBoundingClientRect();
-        const firstRect = firstLink.getBoundingClientRect();
-        const lastRect = lastLink.getBoundingClientRect();
-        const scrollOffset = tocRootRef.current.scrollTop;
+        const top = firstLink.offsetTop;
+        const height =
+          lastLink.offsetHeight + lastLink.offsetTop - firstLink.offsetTop;
 
         setIndicatorStyle({
-          top: firstRect.top - rootRect.top + scrollOffset,
-          height: lastRect.bottom - firstRect.top,
+          top,
+          height,
           opacity: 1,
         });
 
-        // Auto-scroll TOC (matching original scrollToActiveHeading logic)
-        const tocHeight = tocRootRef.current.clientHeight;
-        const topmost = firstLink;
-        const bottommost = lastLink;
+        // Auto-scroll TOC container
+        if (tocRootRef.current) {
+          const tocHeight = tocRootRef.current.clientHeight;
+          const scrollTarget =
+            height < 0.9 * tocHeight
+              ? top - 32
+              : lastLink.offsetTop + lastLink.offsetHeight - tocHeight * 0.8;
 
-        if (
-          bottommost.getBoundingClientRect().bottom -
-            topmost.getBoundingClientRect().top <
-          0.9 * tocHeight
-        ) {
-          // Both fit in view, scroll to topmost
-          const scrollTarget = topmost.offsetTop - 32;
           tocRootRef.current.scrollTo({
             top: scrollTarget,
-            left: 0,
-            behavior: "smooth",
-          });
-        } else {
-          // Too tall, scroll to bottommost
-          const scrollTarget = bottommost.offsetTop - tocHeight * 0.8;
-          tocRootRef.current.scrollTo({
-            top: scrollTarget,
-            left: 0,
             behavior: "smooth",
           });
         }
@@ -239,7 +229,10 @@ export default function TableOfContents({
         }}
       >
         <div className="h-8 w-full" />
-        <div className="group relative flex flex-col w-full">
+        <div
+          ref={linksContainerRef}
+          className="group relative flex flex-col w-full"
+        >
           {headers
             .filter((heading) => heading.level < minDepth + maxLevel)
             .map((heading) => {
@@ -304,7 +297,7 @@ export default function TableOfContents({
               );
             })}
 
-          {/* Active Indicator Backdrop (Fuwari style dashed border) */}
+          {/* Active Indicator Backdrop */}
           {headers.length > 0 && (
             <div
               className={cn(
